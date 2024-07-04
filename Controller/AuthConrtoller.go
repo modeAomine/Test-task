@@ -50,7 +50,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Сохраняем токен в базу данных
 	expiresAt := time.Now().Add(time.Hour * 1)
 	err = Utils.SaveTokenToDB(storedUser.ID, token, expiresAt)
 	if err != nil {
