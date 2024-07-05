@@ -11,6 +11,7 @@ type User struct {
 	Username       string `json:"username"`
 	Password       string `json:"password"`
 	HashedPassword string `json:"hashed_password"`
+	Role           string `json:"role"`
 }
 
 func (u *User) Create() error {
@@ -21,19 +22,7 @@ func (u *User) Create() error {
 	if err != nil {
 		return err
 	}
-	_, err = DataBase.DB.Exec("INSERT INTO users (username, password) VALUES ($1, $2)", u.Username, string(hashedPassword))
+	u.HashedPassword = string(hashedPassword)
+	_, err = DataBase.DB.Exec("INSERT INTO users (username, password, hashed_password) VALUES ($1, $2, $3)", u.Username, string(hashedPassword), u.HashedPassword)
 	return err
-}
-
-func GetUserByUsername(username string) (*User, error) {
-	var user User
-	err := DataBase.DB.QueryRow("SELECT id, username, password FROM users WHERE username = $1", username).Scan(&user.ID, &user.Username, &user.HashedPassword)
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return nil, errors.New("user not found")
-		}
-		return nil, err
-	}
-
-	return &user, nil
 }

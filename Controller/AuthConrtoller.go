@@ -5,46 +5,66 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"tests/Model"
+	"tests/Service"
 	"tests/Utils"
 	"time"
 )
 
+type RegistrationRequest struct {
+	Username       string `json:"username"`
+	Password       string `json:"password"`
+	HashedPassword string `json:"hashed_password"`
+}
+
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 func Registration(w http.ResponseWriter, r *http.Request) {
-	var user Model.User
-	err := json.NewDecoder(r.Body).Decode(&user)
+	var req RegistrationRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	user := Model.User{
+		Username:       req.Username,
+		Password:       req.Password,
+		HashedPassword: req.HashedPassword,
+	}
+
 	err = user.Create()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
+
+	w.Header().Set("Content-Type", "application/json")
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	var user Model.User
-	err := json.NewDecoder(r.Body).Decode(&user)
+	var req LoginRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	storedUser, err := Model.GetUserByUsername(user.Username)
+	storedUser, err := Service.GetUserByUsername(req.Username)
 	if err != nil {
-		http.Error(w, "Пользователь не найден!", http.StatusUnauthorized)
+		http.Error(w, "Пользователь не найден", http.StatusUnauthorized)
 		return
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(storedUser.HashedPassword), []byte(user.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(storedUser.HashedPassword), []byte(req.Password))
 	if err != nil {
 		http.Error(w, "Неверные учетные данные", http.StatusUnauthorized)
 		return
 	}
 
-	token, err := Utils.GenerateJWT(storedUser.ID)
+	token, err := Utils.GenerateJWT(storedUser.ID, storedUser.Username, storedUser.Role)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -58,5 +78,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"token": token})
+	response := map[string]interface{}{
+		"token": token,
+	}
+	json.NewEncoder(w).Encode(response)
 }
