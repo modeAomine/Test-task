@@ -116,7 +116,6 @@ func UpdateUserProfile(user *Model.User, currentPassword string) error {
 	storedUser.Username = user.Username
 
 	if user.Password != "" {
-		// Хеширование нового пароля
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return err
