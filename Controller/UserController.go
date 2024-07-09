@@ -2,9 +2,12 @@ package Controller
 
 import (
 	"encoding/json"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"tests/Model"
 	"tests/Service"
 )
@@ -27,11 +30,45 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-func UpdateUser(w http.ResponseWriter, r *http.Request) {
+func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Authorization header is required", http.StatusUnauthorized)
+		return
+	}
+
+	tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		http.Error(w, "JWT_SECRET is not set", http.StatusInternalServerError)
+		return
+	}
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(jwtSecret), nil
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		userIDFromToken := int(claims["user_id"].(float64))
+
+		if userIDFromToken != id {
+			http.Error(w, "You can only update your own profile", http.StatusForbidden)
+			return
+		}
+	} else {
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
@@ -49,14 +86,14 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	user := updateRequest.User
 	user.ID = id
 
-	err = Service.UpdateUser(&user, updateRequest.CurrentPassword)
+	err = Service.UpdateUserProfile(&user, updateRequest.CurrentPassword)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	response := map[string]interface{}{"message": "User updated successfully", "user": user}
+	response := map[string]interface{}{"message": "User profile updated successfully", "user": user}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }

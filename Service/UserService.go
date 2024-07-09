@@ -11,7 +11,11 @@ import (
 
 func GetUserByUsername(username string) (*Model.User, error) {
 	var user Model.User
-	err := DataBase.DB.QueryRow("SELECT id, username, hashed_password, role FROM users WHERE username = $1", username).Scan(&user.ID, &user.Username, &user.HashedPassword, &user.Role)
+	err := DataBase.DB.QueryRow("SELECT id, username, hashed_password, role FROM users WHERE username = $1", username).Scan(
+		&user.ID,
+		&user.Username,
+		&user.HashedPassword,
+		&user.Role)
 	if err != nil {
 		return nil, err
 	}
@@ -46,49 +50,99 @@ func GetUserByID(id int) (*Model.User, error) {
 }
 
 func CreateUser(u *Model.User) error {
-	// Хешируем пароль
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
-	// Хешируем HashedPassword
 	hashedHashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.HashedPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
-	// Сохраняем оба хешированных пароля в базу данных
 	_, err = DataBase.DB.Exec("INSERT INTO users (username, password, hashed_password, role) VALUES ($1, $2, $3, $4)", u.Username, string(hashedPassword), string(hashedHashedPassword), u.Role)
 	return err
 }
 
-func UpdateUser(u *Model.User, currentPassword string) error {
-	storedUser, err := GetUserByID(u.ID)
+func UpdateUserByAdmin(user *Model.User) error {
+	storedUser, err := GetUserByID(user.ID)
 	if err != nil {
 		return err
+	}
+	if storedUser == nil {
+		return errors.New("User not found")
+	}
+
+	storedUser.Username = user.Username
+	storedUser.Role = user.Role
+
+	if user.Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		storedUser.Password = string(hashedPassword)
+	}
+
+	_, err = DataBase.DB.Exec(`
+		UPDATE users 
+		SET username = $1, hashed_password = $2, role = $3
+		WHERE id = $4`,
+		storedUser.Username,
+		storedUser.HashedPassword,
+		storedUser.Role,
+		storedUser.ID,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func UpdateUserProfile(user *Model.User, currentPassword string) error {
+	storedUser, err := GetUserByID(user.ID)
+	if err != nil {
+		return err
+	}
+	if storedUser == nil {
+		return errors.New("User not found")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(storedUser.HashedPassword), []byte(currentPassword))
 	if err != nil {
-		return errors.New("current password is incorrect")
+		return errors.New("Invalid password")
 	}
 
-	if u.Password != "" {
-		if u.Password != u.HashedPassword {
-			return errors.New("new password and confirmation do not match")
-		}
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	storedUser.Username = user.Username
+
+	if user.Password != "" {
+		// Хеширование нового пароля
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return err
 		}
-		u.HashedPassword = string(hashedPassword)
-	} else {
-		u.HashedPassword = storedUser.HashedPassword
+		storedUser.HashedPassword = string(hashedPassword)
 	}
 
-	_, err = DataBase.DB.Exec("UPDATE users SET username = $1, hashed_password = $2, role = $3 WHERE id = $4", u.Username, u.HashedPassword, u.Role, u.ID)
-	return err
+	NewPasswordHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	_, err = DataBase.DB.Exec(`
+		UPDATE users 
+		SET username = $1, password = $2, hashed_password = $3
+		WHERE id = $4`,
+		storedUser.Username,
+		string(NewPasswordHash),
+		storedUser.HashedPassword,
+		storedUser.ID,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func DeleteUser(id int) error {

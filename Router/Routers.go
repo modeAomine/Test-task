@@ -14,26 +14,34 @@ func AuthRouter() *mux.Router {
 	return r
 }
 
-func WardrobeRouter() *mux.Router {
+func UserRouter() *mux.Router {
 	r := mux.NewRouter()
-	r.Handle("/wardrobe", Middleware.AuthMiddleware(http.HandlerFunc(Controller.AddWardrobeHandler))).Methods("POST")
+	r.HandleFunc("/user/update/{id}", Controller.UpdateUserProfile).Methods("PUT")
 
+	return r
+}
+
+func AdminWardrobeRouter() *mux.Router {
+	r := mux.NewRouter()
+	r.Handle("/admin/wardrobe/add", Middleware.AuthMiddleware(http.HandlerFunc(Controller.AddWardrobeHandler))).Methods("POST")
+	r.Handle("/admin/wardrobe/update/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.UpdateWardrobeHandler))).Methods("PUT")
+	r.Handle("/admin/wardrobe/delete/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.DeleteWardrobeHandler))).Methods("DELETE")
 	return r
 }
 
 func AdminUserRouter() *mux.Router {
 	r := mux.NewRouter()
-	r.Handle("/user/update/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.UpdateUser))).Methods("PUT")
-	r.Handle("/user/delete/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.DeleteUser))).Methods("DELETE")
-	r.Handle("/user/add", Middleware.AuthMiddleware(http.HandlerFunc(Controller.CreateUser))).Methods("POST")
-
+	r.Handle("/admin/user/update/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.UpdateUserByAdmin))).Methods("PUT")
+	r.Handle("/admin/user/delete/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.DeleteUser))).Methods("DELETE")
+	r.Handle("/admin/user/add", Middleware.AuthMiddleware(http.HandlerFunc(Controller.CreateUser))).Methods("POST")
 	return r
 }
 
 func MixRouter() *mux.Router {
 	r := mux.NewRouter()
 	r.PathPrefix("/auth").Handler(AuthRouter())
-	r.PathPrefix("/wardrobe").Handler(WardrobeRouter())
-	r.PathPrefix("/user").Handler(AdminUserRouter())
+	r.PathPrefix("/admin").Handler(AdminWardrobeRouter())
+	r.PathPrefix("/admin").Handler(AdminUserRouter())
+	r.PathPrefix("/user").Handler(UserRouter())
 	return r
 }
