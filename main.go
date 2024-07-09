@@ -26,6 +26,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	r := Router.AuthRouter()
+	r := Router.MixRouter()
 	log.Fatal(http.ListenAndServe(":"+Config.AppConfig.Port, r))
 }

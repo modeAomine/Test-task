@@ -8,11 +8,12 @@ import (
 	"time"
 )
 
-func GenerateJWT(userID int, role string, username string) (string, error) {
+func GenerateJWT(userID int, username string, role string) (string, error) {
+	fmt.Println("Role: ", role+"Username: ", username+"UserID: ", userID)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id":  userID,
-		"role":     role,
 		"username": username,
+		"role":     role,
 		"exp":      time.Now().Add(time.Hour * 1).Unix(),
 	})
 	return token.SignedString([]byte(Config.AppConfig.JWTSecret))

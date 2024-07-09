@@ -64,6 +64,21 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	activeToken, err := Service.GetActiveTokenByUserID(storedUser.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if activeToken != "" {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"message": "Вы уже авторезированы!",
+		}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
 	token, err := Utils.GenerateJWT(storedUser.ID, storedUser.Username, storedUser.Role)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
