@@ -30,18 +30,20 @@ func Registration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := Model.User{
-		Username:       req.Username,
-		Password:       req.Password,
-		HashedPassword: req.HashedPassword,
+		Username:        req.Username,
+		Password:        req.Password,
+		ConfirmPassword: req.HashedPassword,
 	}
 
-	err = user.Create()
+	err = Service.CreateUser(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(user)
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {

@@ -21,14 +21,18 @@ func WardrobeRouter() *mux.Router {
 	return r
 }
 
+func AdminUserRouter() *mux.Router {
+	r := mux.NewRouter()
+	r.Handle("/user/update/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.UpdateUser))).Methods("PUT")
+	r.Handle("/user/delete/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.DeleteUser))).Methods("DELETE")
+
+	return r
+}
+
 func MixRouter() *mux.Router {
 	r := mux.NewRouter()
 	r.PathPrefix("/auth").Handler(AuthRouter())
 	r.PathPrefix("/wardrobe").Handler(WardrobeRouter())
+	r.PathPrefix("/user").Handler(AdminUserRouter())
 	return r
-}
-
-func wardrobeHandler(w http.ResponseWriter, r *http.Request) {
-	claims := r.Context().Value("claims").(*Middleware.Claims)
-	w.Write([]byte("Hello, " + claims.Role))
 }
