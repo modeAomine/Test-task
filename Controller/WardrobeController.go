@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"tests/Model"
+	"tests/Service"
 )
 
 type WardrobeRequest struct {
@@ -38,7 +39,7 @@ func AddWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 		Link:        req.Link,
 	}
 
-	err = wardrobe.Create()
+	err = Service.CreateWardrobe(&wardrobe)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

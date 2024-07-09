@@ -25,6 +25,7 @@ func AdminUserRouter() *mux.Router {
 	r := mux.NewRouter()
 	r.Handle("/user/update/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.UpdateUser))).Methods("PUT")
 	r.Handle("/user/delete/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.DeleteUser))).Methods("DELETE")
+	r.Handle("/user/add", Middleware.AuthMiddleware(http.HandlerFunc(Controller.CreateUser))).Methods("POST")
 
 	return r
 }

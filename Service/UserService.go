@@ -46,15 +46,20 @@ func GetUserByID(id int) (*Model.User, error) {
 }
 
 func CreateUser(u *Model.User) error {
-	if u.Password != u.ConfirmPassword {
-		return errors.New("passwords do not match")
-	}
+	// Хешируем пароль
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-	u.HashedPassword = string(hashedPassword)
-	_, err = DataBase.DB.Exec("INSERT INTO users (username, hashed_password, role) VALUES ($1, $2, $3)", u.Username, u.HashedPassword, u.Role)
+
+	// Хешируем HashedPassword
+	hashedHashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.HashedPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	// Сохраняем оба хешированных пароля в базу данных
+	_, err = DataBase.DB.Exec("INSERT INTO users (username, password, hashed_password, role) VALUES ($1, $2, $3, $4)", u.Username, string(hashedPassword), string(hashedHashedPassword), u.Role)
 	return err
 }
 
@@ -70,7 +75,7 @@ func UpdateUser(u *Model.User, currentPassword string) error {
 	}
 
 	if u.Password != "" {
-		if u.Password != u.ConfirmPassword {
+		if u.Password != u.HashedPassword {
 			return errors.New("new password and confirmation do not match")
 		}
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)

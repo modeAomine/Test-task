@@ -30,9 +30,13 @@ func Registration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := Model.User{
-		Username:        req.Username,
-		Password:        req.Password,
-		ConfirmPassword: req.HashedPassword,
+		Username:       req.Username,
+		Password:       req.Password,
+		HashedPassword: req.HashedPassword,
+	}
+
+	if user.Role == "" {
+		user.Role = "user"
 	}
 
 	err = Service.CreateUser(&user)
@@ -42,8 +46,11 @@ func Registration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+	response := map[string]interface{}{
+		"message": user.Username + " " + "успешно зарегестрировался!",
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
