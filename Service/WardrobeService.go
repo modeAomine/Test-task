@@ -104,3 +104,24 @@ func DeleteWardrobe(id int) error {
 	_, err := DataBase.DB.Exec("DELETE FROM Wardrobe WHERE id = $1", id)
 	return err
 }
+
+func GetAllWardrobe() ([]Model.Wardrobe, error) {
+	var wardrobes []Model.Wardrobe
+	rows, err := DataBase.DB.Query("SELECT id, title, quantity, price, description, height, width, depth, filename, link FROM Wardrobe")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var wardrobe Model.Wardrobe
+		err := rows.Scan(&wardrobe.ID, &wardrobe.Title, &wardrobe.Quantity, &wardrobe.Price, &wardrobe.Description, &wardrobe.Height, &wardrobe.Width, &wardrobe.Depth, &wardrobe.Filename, &wardrobe.Link)
+		if err != nil {
+			return nil, err
+		}
+		wardrobes = append(wardrobes, wardrobe)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return wardrobes, nil
+}

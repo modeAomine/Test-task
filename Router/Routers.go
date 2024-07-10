@@ -17,6 +17,7 @@ func AuthRouter() *mux.Router {
 func UserRouter() *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/user/update/{id}", Controller.UpdateUserProfile).Methods("PUT")
+	r.Handle("/user/all", Middleware.AuthMiddleware(http.HandlerFunc(Controller.GetAllUsers))).Methods("GET")
 
 	return r
 }
@@ -26,6 +27,7 @@ func AdminWardrobeRouter() *mux.Router {
 	r.Handle("/admin/wardrobe/add", Middleware.AuthMiddleware(http.HandlerFunc(Controller.AddWardrobeHandler))).Methods("POST")
 	r.Handle("/admin/wardrobe/update/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.UpdateWardrobeHandler))).Methods("PUT")
 	r.Handle("/admin/wardrobe/delete/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.DeleteWardrobeHandler))).Methods("DELETE")
+	r.Handle("/admin/wardrobe/all", Middleware.AuthMiddleware(http.HandlerFunc(Controller.GetAllWardrobe))).Methods("GET")
 	return r
 }
 

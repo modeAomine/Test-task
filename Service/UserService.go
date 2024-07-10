@@ -37,6 +37,27 @@ func GetActiveTokenByUserID(userID int) (string, error) {
 	return token, nil
 }
 
+func GetAllUsers() ([]Model.User, error) {
+	var users []Model.User
+	rows, err := DataBase.DB.Query("SELECT id, username, password, hashed_password, role FROM users")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var user Model.User
+		err := rows.Scan(&user.ID, &user.Username, &user.Password, &user.HashedPassword, &user.Role)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
 func GetUserByID(id int) (*Model.User, error) {
 	var user Model.User
 	err := DataBase.DB.QueryRow("SELECT id, username, hashed_password, role FROM users WHERE id = $1", id).Scan(&user.ID, &user.Username, &user.HashedPassword, &user.Role)

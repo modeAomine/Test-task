@@ -9,7 +9,7 @@ import (
 )
 
 func GenerateJWT(userID int, username string, role string) (string, error) {
-	fmt.Println("Role: ", role+"Username: ", username+"UserID: ", userID)
+	fmt.Println("Role: ", role+" "+"Username: ", username+" "+"UserID: ", userID)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id":  userID,
 		"username": username,

@@ -27,5 +27,14 @@ func main() {
 	}
 
 	r := Router.MixRouter()
+	r.Use(LoggingMiddleware)
+	log.Println("Server started on :" + Config.AppConfig.Port)
 	log.Fatal(http.ListenAndServe(":"+Config.AppConfig.Port, r))
+}
+
+func LoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Request: %s %s", r.Method, r.URL.Path)
+		next.ServeHTTP(w, r)
+	})
 }
