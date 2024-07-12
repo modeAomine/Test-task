@@ -2,13 +2,16 @@ package Controller
 
 import (
 	"encoding/json"
+	"errors"
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"strings"
+	"tests/DataBase"
 	"tests/Model"
 	"tests/Service"
 	"tests/Utils"
+	"tests/Validation"
 	"time"
 )
 
@@ -34,13 +37,31 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = checkUniqueEmailAndPhone(req.Email, req.Phone)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Password != req.HashedPassword {
+		http.Error(w, "Пароль и подтверждение пароля не совпадают!", http.StatusBadRequest)
+		return
+	}
+
+	err = Validation.ValidateAuthUser(req.Username, req.Password)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	user := Model.User{
-		Username: req.Username,
-		FullName: req.FullName,
-		Email:    req.Email,
-		Phone:    req.Phone,
-		Password: req.Password,
-		Role:     "user",
+		Username:       req.Username,
+		FullName:       req.FullName,
+		Email:          req.Email,
+		Phone:          req.Phone,
+		Password:       req.Password,
+		HashedPassword: req.HashedPassword,
+		Role:           "user",
 	}
 
 	err = Service.RegisterUser(&user)
@@ -135,4 +156,25 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+}
+
+func checkUniqueEmailAndPhone(email string, phone string) error {
+	var count int
+	err := DataBase.DB.QueryRow("SELECT COUNT(*) FROM users WHERE email = $1", email).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		return errors.New("Пользователь с таким: " + email + " email уже существует")
+	}
+
+	err = DataBase.DB.QueryRow("SELECT COUNT(*) FROM users WHERE phone = $1", phone).Scan(&count)
+	if err != nil {
+		return err
+	}
+
+	if count > 0 {
+		return errors.New("Пользователь с таким: " + phone + " номером уже существует!")
+	}
+	return nil
 }
