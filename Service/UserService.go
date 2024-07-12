@@ -35,11 +35,10 @@ func CreateUser(user *Model.User) error {
 
 func GetUserByUsername(username string) (*Model.User, error) {
 	var user Model.User
-	err := DataBase.DB.QueryRow("SELECT id, username, password, hashed_password, role FROM users WHERE username = $1", username).Scan(
+	err := DataBase.DB.QueryRow("SELECT id, username, password, role FROM users WHERE username = $1", username).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Password,
-		&user.HashedPassword,
 		&user.Role)
 	if err != nil {
 		return nil, err
