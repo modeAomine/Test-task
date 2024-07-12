@@ -14,6 +14,9 @@ import (
 
 type RegistrationRequest struct {
 	Username       string `json:"username"`
+	FullName       string `json:"full_name"`
+	Email          string `json:"email"`
+	Phone          string `json:"phone"`
 	Password       string `json:"password"`
 	HashedPassword string `json:"hashed_password"`
 }
@@ -33,6 +36,9 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	user := Model.User{
 		Username: req.Username,
+		FullName: req.FullName,
+		Email:    req.Email,
+		Phone:    req.Phone,
 		Password: req.Password,
 		Role:     "user",
 	}

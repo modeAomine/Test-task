@@ -29,7 +29,7 @@ func RegisterUser(user *Model.User) error {
 }
 
 func CreateUser(user *Model.User) error {
-	_, err := DataBase.DB.Exec("INSERT INTO users (username, password, hashed_password, role) VALUES ($1, $2, $3, $4)", user.Username, user.Password, user.HashedPassword, user.Role)
+	_, err := DataBase.DB.Exec("INSERT INTO users (username, full_name, email, phone, password, hashed_password, role) VALUES ($1, $2, $3, $4, $5, $6, $7)", user.Username, user.FullName, user.Email, user.Phone, user.Password, user.HashedPassword, user.Role)
 	return err
 }
 
