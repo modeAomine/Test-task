@@ -3,7 +3,9 @@ package Service
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 	"tests/DataBase"
 	"tests/Model"
 	"time"
@@ -35,14 +37,22 @@ func CreateUser(user *Model.User) error {
 
 func GetUserByUsername(username string) (*Model.User, error) {
 	var user Model.User
-	err := DataBase.DB.QueryRow("SELECT id, username, password, role FROM users WHERE username = $1", username).Scan(
+	row := DataBase.DB.QueryRow("SELECT id, username, full_name, email, phone, password, hashed_password, role FROM users WHERE username = $1", username)
+	err := row.Scan(
 		&user.ID,
 		&user.Username,
+		&user.FullName,
+		&user.Email,
+		&user.Phone,
 		&user.Password,
-		&user.Role)
+		&user.HashedPassword,
+		&user.Role,
+	)
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Printf("User from DB: %+v\n", user)
 	return &user, nil
 }
 
@@ -63,8 +73,9 @@ func GetActiveTokenByUserID(userID int) (string, error) {
 
 func GetAllUsers() ([]Model.User, error) {
 	var users []Model.User
-	rows, err := DataBase.DB.Query("SELECT id, username, password, hashed_password, role FROM users")
+	rows, err := DataBase.DB.Query("SELECT id, username, full_name, email, phone, password, hashed_password, role FROM users")
 	if err != nil {
+		log.Printf("Error querying database: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -73,15 +84,20 @@ func GetAllUsers() ([]Model.User, error) {
 		err := rows.Scan(
 			&user.ID,
 			&user.Username,
+			&user.FullName,
+			&user.Email,
+			&user.Phone,
 			&user.Password,
 			&user.HashedPassword,
 			&user.Role)
 		if err != nil {
+			log.Printf("Error scanning row: %v", err)
 			return nil, err
 		}
 		users = append(users, user)
 	}
 	if err := rows.Err(); err != nil {
+		log.Printf("Error iterating rows: %v", err)
 		return nil, err
 	}
 	return users, nil

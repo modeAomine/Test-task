@@ -1,6 +1,7 @@
 package Utils
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"tests/Config"
@@ -8,14 +9,26 @@ import (
 	"time"
 )
 
-func GenerateJWT(userID int, username string, role string) (string, error) {
-	fmt.Println("Role: ", role+" "+"Username: ", username+" "+"UserID: ", userID)
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+func GenerateJWT(userID int, username string, role string, email sql.NullString, phone sql.NullString) (string, error) {
+	fmt.Printf("Email: %+v\n", email)
+	fmt.Printf("Phone: %+v\n", phone)
+
+	claims := jwt.MapClaims{
 		"user_id":  userID,
 		"username": username,
 		"role":     role,
 		"exp":      time.Now().Add(time.Hour * 12).Unix(),
-	})
+	}
+
+	if email.Valid {
+		claims["email"] = email.String
+	}
+
+	if phone.Valid {
+		claims["phone"] = phone.String
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(Config.AppConfig.JWTSecret))
 }
 

@@ -11,9 +11,22 @@ func ValidateAuthUser(username, password string) error {
 		return errors.New("Длина имени пользователя должна составлять от 4 до 10 символов. Имя пользователя должно состоять только из английских букв и цифр!")
 	}
 
-	passwordRegex := regexp.MustCompile(`^(?=(.*[A-Z]){3})(?=.*[!*])(?=.*[0-9a-zA-Z]).{8,12}$`)
-	if !passwordRegex.MatchString(password) {
-		return errors.New("Пароль пользователя должен состоять от 8 до 12 символов, также должен содержать минимум 3 заглавные английские буквы и 1 специальный символ (!*). Пароль пользователя должен содержать только английские буквы и цифры!")
+	uppercaseRegex := regexp.MustCompile(`[A-Z].*[A-Z].*[A-Z]`)
+	specialCharRegex := regexp.MustCompile(`[!*]`)
+	alphanumericWithSpecialRegex := regexp.MustCompile(`^[0-9a-zA-Z!*]*$`)
+	lengthRegex := regexp.MustCompile(`^.{8,15}$`)
+
+	if !uppercaseRegex.MatchString(password) {
+		return errors.New("Пароль должен содержать минимум 3 заглавные английские буквы!")
+	}
+	if !specialCharRegex.MatchString(password) {
+		return errors.New("Пароль должен содержать минимум 1 специальный символ (!*).")
+	}
+	if !alphanumericWithSpecialRegex.MatchString(password) {
+		return errors.New("Пароль должен содержать только английские буквы, цифры и специальные символы (!*).")
+	}
+	if !lengthRegex.MatchString(password) {
+		return errors.New("Пароль должен состоять от 8 до 15 символов!")
 	}
 
 	return nil

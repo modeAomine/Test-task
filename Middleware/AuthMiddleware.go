@@ -10,8 +10,10 @@ import (
 var JwtKey = []byte("93821fsajkKFDS92")
 
 type Claims struct {
-	UserID int    `json:"user_id"`
-	Role   string `json:"role"`
+	UserID int     `json:"user_id"`
+	Role   string  `json:"role"`
+	Phone  *string `json:"phone"`
+	Email  *string `json:"email"`
 	jwt.StandardClaims
 }
 

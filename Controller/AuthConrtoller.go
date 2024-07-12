@@ -1,8 +1,10 @@
 package Controller
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
@@ -56,9 +58,9 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	user := Model.User{
 		Username:       req.Username,
-		FullName:       req.FullName,
-		Email:          req.Email,
-		Phone:          req.Phone,
+		FullName:       sql.NullString{String: req.FullName, Valid: req.FullName != ""},
+		Email:          sql.NullString{String: req.Email, Valid: req.Email != ""},
+		Phone:          sql.NullString{String: req.Phone, Valid: req.Phone != ""},
 		Password:       req.Password,
 		HashedPassword: req.HashedPassword,
 		Role:           "user",
@@ -113,13 +115,15 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := Utils.GenerateJWT(storedUser.ID, storedUser.Username, storedUser.Role)
+	token, err := Utils.GenerateJWT(storedUser.ID, storedUser.Username, storedUser.Role, storedUser.Email, storedUser.Phone)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	expiresAt := time.Now().Add(time.Hour * 1)
+	fmt.Printf("Generated Token: %s\n", token)
+
+	expiresAt := time.Now().Add(time.Hour * 12)
 	err = Utils.SaveTokenToDB(storedUser.ID, token, expiresAt)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
