@@ -29,12 +29,18 @@ func UserRouter() *mux.Router {
 	return r
 }
 
+func AllRouter() *mux.Router {
+	r := mux.NewRouter()
+	r.HandleFunc("/all/wardrobe", Controller.GetAllWardrobe).Methods("GET")
+
+	return r
+}
+
 func AdminWardrobeRouter() *mux.Router {
 	r := mux.NewRouter()
 	r.Handle("/admin/wardrobe/add", Middleware.AuthMiddleware(http.HandlerFunc(Controller.AddWardrobeHandler))).Methods("POST")
 	r.Handle("/admin/wardrobe/update/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.UpdateWardrobeHandler))).Methods("PUT")
 	r.Handle("/admin/wardrobe/delete/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.DeleteWardrobeHandler))).Methods("DELETE")
-	r.Handle("/admin/wardrobe/all", Middleware.AuthMiddleware(http.HandlerFunc(Controller.GetAllWardrobe))).Methods("GET")
 
 	return r
 }
@@ -55,6 +61,7 @@ func MixRouter() *mux.Router {
 	r.PathPrefix("/admin").Handler(AdminUserRouter())
 	r.PathPrefix("/user").Handler(UserRouter())
 	r.PathPrefix("/logout").Handler(LogoutRouter())
+	r.PathPrefix("/all").Handler(AllRouter())
 
 	return r
 }
