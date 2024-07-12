@@ -28,6 +28,7 @@ func AdminWardrobeRouter() *mux.Router {
 	r.Handle("/admin/wardrobe/update/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.UpdateWardrobeHandler))).Methods("PUT")
 	r.Handle("/admin/wardrobe/delete/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.DeleteWardrobeHandler))).Methods("DELETE")
 	r.Handle("/admin/wardrobe/all", Middleware.AuthMiddleware(http.HandlerFunc(Controller.GetAllWardrobe))).Methods("GET")
+
 	return r
 }
 
@@ -36,6 +37,7 @@ func AdminUserRouter() *mux.Router {
 	r.Handle("/admin/user/update/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.UpdateUserByAdmin))).Methods("PUT")
 	r.Handle("/admin/user/delete/{id}", Middleware.AuthMiddleware(http.HandlerFunc(Controller.DeleteUser))).Methods("DELETE")
 	r.Handle("/admin/user/add", Middleware.AuthMiddleware(http.HandlerFunc(Controller.CreateUser))).Methods("POST")
+
 	return r
 }
 
@@ -45,5 +47,6 @@ func MixRouter() *mux.Router {
 	r.PathPrefix("/admin").Handler(AdminWardrobeRouter())
 	r.PathPrefix("/admin").Handler(AdminUserRouter())
 	r.PathPrefix("/user").Handler(UserRouter())
+
 	return r
 }

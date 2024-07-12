@@ -4,6 +4,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/rs/cors"
 	"log"
 	"net/http"
 	"strconv"
@@ -28,8 +29,21 @@ func main() {
 
 	r := Router.MixRouter()
 	r.Use(LoggingMiddleware)
+
+	// Добавляем middleware CORS
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"},                                   // Разрешенные источники
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},                 // Разрешенные методы
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"}, // Разрешенные заголовки
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300, // Максимальное время жизни предварительных запросов (в секундах)
+	})
+
+	handler := c.Handler(r)
+
 	log.Println("Server started on :" + Config.AppConfig.Port)
-	log.Fatal(http.ListenAndServe(":"+Config.AppConfig.Port, r))
+	log.Fatal(http.ListenAndServe(":"+Config.AppConfig.Port, handler))
 }
 
 func LoggingMiddleware(next http.Handler) http.Handler {
