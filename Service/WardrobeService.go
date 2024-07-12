@@ -9,11 +9,12 @@ import (
 
 func GetWardrobeById(id int) (*Model.Wardrobe, error) {
 	var wardrobe Model.Wardrobe
-	err := DataBase.DB.QueryRow("SELECT id, title, quantity, price, description, height, width, depth, filename, link FROM Wardrobe WHERE id = $1", id).Scan(
+	err := DataBase.DB.QueryRow("SELECT id, title, quantity, price, old_price, description, height, width, depth, filename, link FROM Wardrobe WHERE id = $1", id).Scan(
 		&wardrobe.ID,
 		&wardrobe.Title,
 		&wardrobe.Quantity,
 		&wardrobe.Price,
+		&wardrobe.OldPrice,
 		&wardrobe.Description,
 		&wardrobe.Height,
 		&wardrobe.Width,
@@ -29,11 +30,12 @@ func GetWardrobeById(id int) (*Model.Wardrobe, error) {
 	return &wardrobe, nil
 }
 
-func CreateWardrobe(w *Model.Wardrobe) error {
+func CreateWardrobe(w *Model.Wardrobe, file []byte) error {
 	requiredFields := map[string]interface{}{
 		"title":       w.Title,
 		"quantity":    w.Quantity,
 		"price":       w.Price,
+		"old_price":   w.OldPrice,
 		"description": w.Description,
 		"height":      w.Height,
 		"width":       w.Width,
@@ -48,9 +50,14 @@ func CreateWardrobe(w *Model.Wardrobe) error {
 		}
 	}
 
-	query := `INSERT INTO Wardrobe (title, quantity, price, description, height, width, depth, filename, link) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`
+	err := saveFileToUploads(file, w.Filename)
+	if err != nil {
+		return err
+	}
 
-	err := DataBase.DB.QueryRow(query, w.Title, w.Quantity, w.Price, w.Description, w.Height, w.Width, w.Depth, w.Filename, w.Link).Scan(&w.ID)
+	query := `INSERT INTO Wardrobe (title, quantity, price, old_price, description, height, width, depth, filename, link) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`
+
+	err = DataBase.DB.QueryRow(query, w.Title, w.Quantity, w.Price, w.OldPrice, w.Description, w.Height, w.Width, w.Depth, w.Filename, w.Link).Scan(&w.ID)
 	if err != nil {
 		return err
 	}
@@ -71,6 +78,7 @@ func UpdateWardrobe(w *Model.Wardrobe) error {
 	storedWardrobe.Title = w.Title
 	storedWardrobe.Quantity = w.Quantity
 	storedWardrobe.Price = w.Price
+	storedWardrobe.OldPrice = w.OldPrice
 	storedWardrobe.Description = w.Description
 	storedWardrobe.Height = w.Height
 	storedWardrobe.Width = w.Width
@@ -80,11 +88,12 @@ func UpdateWardrobe(w *Model.Wardrobe) error {
 
 	_, err = DataBase.DB.Exec(`
 		UPDATE Wardrobe 
-		SET title = $1, quantity = $2, price = $3, description = $4, height = $5, width = $6, depth = $7, filename = $8, link = $9
+		SET title = $1, quantity = $2, price = $3, old_price = $4, description = $5, height = $6, width = $7, depth = $8, filename = $9, link = $10
 		WHERE id = $10`,
 		storedWardrobe.Title,
 		storedWardrobe.Quantity,
 		storedWardrobe.Price,
+		storedWardrobe.OldPrice,
 		storedWardrobe.Description,
 		storedWardrobe.Height,
 		storedWardrobe.Width,
@@ -107,14 +116,14 @@ func DeleteWardrobe(id int) error {
 
 func GetAllWardrobe() ([]Model.Wardrobe, error) {
 	var wardrobes []Model.Wardrobe
-	rows, err := DataBase.DB.Query("SELECT id, title, quantity, price, description, height, width, depth, filename, link FROM Wardrobe")
+	rows, err := DataBase.DB.Query("SELECT id, title, quantity, price, old_price, description, height, width, depth, filename, link FROM Wardrobe")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var wardrobe Model.Wardrobe
-		err := rows.Scan(&wardrobe.ID, &wardrobe.Title, &wardrobe.Quantity, &wardrobe.Price, &wardrobe.Description, &wardrobe.Height, &wardrobe.Width, &wardrobe.Depth, &wardrobe.Filename, &wardrobe.Link)
+		err := rows.Scan(&wardrobe.ID, &wardrobe.Title, &wardrobe.Quantity, &wardrobe.Price, &wardrobe.OldPrice, &wardrobe.Description, &wardrobe.Height, &wardrobe.Width, &wardrobe.Depth, &wardrobe.Filename, &wardrobe.Link)
 		if err != nil {
 			return nil, err
 		}

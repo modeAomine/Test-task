@@ -29,6 +29,13 @@ func UserRouter() *mux.Router {
 	return r
 }
 
+func WardrobeRouter() *mux.Router {
+	r := mux.NewRouter()
+	r.HandleFunc("/wardrobe/{id}", Controller.GetWardrobeHandler).Methods("GET")
+
+	return r
+}
+
 func AllRouter() *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/all/wardrobe", Controller.GetAllWardrobe).Methods("GET")
@@ -62,6 +69,7 @@ func MixRouter() *mux.Router {
 	r.PathPrefix("/user").Handler(UserRouter())
 	r.PathPrefix("/logout").Handler(LogoutRouter())
 	r.PathPrefix("/all").Handler(AllRouter())
+	r.PathPrefix("/wardrobe").Handler(WardrobeRouter())
 
 	return r
 }

@@ -3,6 +3,7 @@ package Controller
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"tests/Model"
@@ -10,38 +11,63 @@ import (
 )
 
 type WardrobeRequest struct {
-	Title       string  `json:"title"`
-	Quantity    int     `json:"quantity"`
-	Price       float64 `json:"price"`
-	Description string  `json:"description"`
-	Height      float64 `json:"height"`
-	Width       float64 `json:"width"`
-	Depth       float64 `json:"depth"`
-	Filename    string  `json:"filename"`
-	Link        string  `json:"link"`
+	Title       string `json:"title"`
+	Quantity    string `json:"quantity"`
+	Price       string `json:"price"`
+	OldPrice    string `json:"old_price"`
+	Description string `json:"description"`
+	Height      string `json:"height"`
+	Width       string `json:"width"`
+	Depth       string `json:"depth"`
+	Filename    string `json:"filename"`
+	Link        string `json:"link"`
 }
 
 func AddWardrobeHandler(w http.ResponseWriter, r *http.Request) {
-	var req WardrobeRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err := r.ParseMultipartForm(25 << 20)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	wardrobe := Model.Wardrobe{
-		Title:       req.Title,
-		Quantity:    req.Quantity,
-		Price:       req.Price,
-		Description: req.Description,
-		Height:      req.Height,
-		Width:       req.Width,
-		Depth:       req.Depth,
-		Filename:    req.Filename,
-		Link:        req.Link,
+	title := r.FormValue("title")
+	quantity := r.FormValue("quantity")
+	price := r.FormValue("price")
+	oldPrice := r.FormValue("old_price")
+	description := r.FormValue("description")
+	height := r.FormValue("height")
+	width := r.FormValue("width")
+	depth := r.FormValue("depth")
+	filename := r.FormValue("filename")
+	link := r.FormValue("link")
+
+	file, _, err := r.FormFile("filename")
+	if err != nil {
+		http.Error(w, "Failed to get image", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		http.Error(w, "Failed to read image", http.StatusInternalServerError)
+		return
 	}
 
-	err = Service.CreateWardrobe(&wardrobe)
+	wardrobe := Model.Wardrobe{
+		Title:       title,
+		Quantity:    quantity,
+		Price:       price,
+		OldPrice:    oldPrice,
+		Description: description,
+		Height:      height,
+		Width:       width,
+		Depth:       depth,
+		Filename:    filename,
+		Link:        link,
+	}
+
+	err = Service.CreateWardrobe(&wardrobe, fileBytes)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -106,4 +132,26 @@ func DeleteWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
+}
+
+func GetWardrobeHandler(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	wadrobe, err := Service.GetWardrobeById(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if wadrobe == nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(wadrobe)
 }
