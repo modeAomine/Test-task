@@ -23,7 +23,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
+		tokenString = strings.Replace(tokenString, "Bearer ", "", 12)
 		claims := &Claims{}
 
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {

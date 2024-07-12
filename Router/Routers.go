@@ -14,6 +14,13 @@ func AuthRouter() *mux.Router {
 	return r
 }
 
+func LogoutRouter() *mux.Router {
+	r := mux.NewRouter()
+	r.HandleFunc("/logout", Controller.Logout).Methods("POST")
+
+	return r
+}
+
 func UserRouter() *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/user/update/{id}", Controller.UpdateUserProfile).Methods("PUT")
@@ -47,6 +54,7 @@ func MixRouter() *mux.Router {
 	r.PathPrefix("/admin").Handler(AdminWardrobeRouter())
 	r.PathPrefix("/admin").Handler(AdminUserRouter())
 	r.PathPrefix("/user").Handler(UserRouter())
+	r.PathPrefix("/logout").Handler(LogoutRouter())
 
 	return r
 }
