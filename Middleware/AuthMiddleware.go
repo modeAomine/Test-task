@@ -44,11 +44,6 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if claims.Role != "admin" {
-			http.Error(w, "Access denied", http.StatusForbidden)
-			return
-		}
-
 		ctx := context.WithValue(r.Context(), "claims", claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

@@ -21,7 +21,7 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-func Registration(w http.ResponseWriter, r *http.Request) {
+func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req RegistrationRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -30,16 +30,12 @@ func Registration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := Model.User{
-		Username:       req.Username,
-		Password:       req.Password,
-		HashedPassword: req.HashedPassword,
+		Username: req.Username,
+		Password: req.Password,
+		Role:     "user",
 	}
 
-	if user.Role == "" {
-		user.Role = "user"
-	}
-
-	err = Service.CreateUser(&user)
+	err = Service.RegisterUser(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -47,7 +43,7 @@ func Registration(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]interface{}{
-		"message": user.Username + " " + "успешно зарегестрировался!",
+		"message": user.Username + " успешно зарегистрирован!",
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
@@ -67,7 +63,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(storedUser.HashedPassword), []byte(req.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(storedUser.Password), []byte(req.Password))
 	if err != nil {
 		http.Error(w, "Неверные учетные данные", http.StatusUnauthorized)
 		return
@@ -82,7 +78,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	if activeToken != "" {
 		w.Header().Set("Content-Type", "application/json")
 		response := map[string]interface{}{
-			"message": "Вы уже авторезированы!",
+			"message": "Вы уже авторизованы!",
 		}
 		json.NewEncoder(w).Encode(response)
 		return

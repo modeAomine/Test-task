@@ -9,7 +9,7 @@ import (
 
 func AuthRouter() *mux.Router {
 	r := mux.NewRouter()
-	r.HandleFunc("/auth/registration", Controller.Registration).Methods("POST")
+	r.HandleFunc("/auth/registration", Controller.RegisterUser).Methods("POST")
 	r.HandleFunc("/auth/login", Controller.Login).Methods("POST")
 	return r
 }

@@ -9,11 +9,36 @@ import (
 	"time"
 )
 
+func RegisterUser(user *Model.User) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	hashedHashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.HashedPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.Password = string(hashedPassword)
+	user.HashedPassword = string(hashedHashedPassword)
+
+	err = CreateUser(user)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func CreateUser(user *Model.User) error {
+	_, err := DataBase.DB.Exec("INSERT INTO users (username, password, hashed_password, role) VALUES ($1, $2, $3, $4)", user.Username, user.Password, user.HashedPassword, user.Role)
+	return err
+}
+
 func GetUserByUsername(username string) (*Model.User, error) {
 	var user Model.User
-	err := DataBase.DB.QueryRow("SELECT id, username, hashed_password, role FROM users WHERE username = $1", username).Scan(
+	err := DataBase.DB.QueryRow("SELECT id, username, password, hashed_password, role FROM users WHERE username = $1", username).Scan(
 		&user.ID,
 		&user.Username,
+		&user.Password,
 		&user.HashedPassword,
 		&user.Role)
 	if err != nil {
@@ -46,7 +71,12 @@ func GetAllUsers() ([]Model.User, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var user Model.User
-		err := rows.Scan(&user.ID, &user.Username, &user.Password, &user.HashedPassword, &user.Role)
+		err := rows.Scan(
+			&user.ID,
+			&user.Username,
+			&user.Password,
+			&user.HashedPassword,
+			&user.Role)
 		if err != nil {
 			return nil, err
 		}
@@ -68,21 +98,6 @@ func GetUserByID(id int) (*Model.User, error) {
 		return nil, err
 	}
 	return &user, nil
-}
-
-func CreateUser(u *Model.User) error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	hashedHashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.HashedPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	_, err = DataBase.DB.Exec("INSERT INTO users (username, password, hashed_password, role) VALUES ($1, $2, $3, $4)", u.Username, string(hashedPassword), string(hashedHashedPassword), u.Role)
-	return err
 }
 
 func UpdateUserByAdmin(user *Model.User) error {
