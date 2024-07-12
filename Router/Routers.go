@@ -71,5 +71,7 @@ func MixRouter() *mux.Router {
 	r.PathPrefix("/all").Handler(AllRouter())
 	r.PathPrefix("/wardrobe").Handler(WardrobeRouter())
 
+	r.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
+
 	return r
 }
