@@ -1,8 +1,21 @@
 package Service
 
-import "tests/DataBase"
+import (
+	"errors"
+	"tests/DataBase"
+)
 
 func InvalidToken(token string) error {
-	_, err := DataBase.DB.Exec("DELETE FROM Token WHERE token = $1", token)
+	var count int
+	err := DataBase.DB.QueryRow("SELECT COUNT(*) FROM tokens WHERE token = $1", token).Scan(&count)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return errors.New("token not found")
+	}
+
+	_, err = DataBase.DB.Exec("DELETE FROM tokens WHERE token = $1", token)
 	return err
 }

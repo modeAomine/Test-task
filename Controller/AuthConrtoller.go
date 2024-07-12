@@ -3,7 +3,9 @@ package Controller
 import (
 	"encoding/json"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 	"net/http"
+	"strings"
 	"tests/Model"
 	"tests/Service"
 	"tests/Utils"
@@ -110,6 +112,10 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authorization header is required", http.StatusUnauthorized)
 		return
 	}
+
+	tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
+
+	log.Printf("Token to invalidate: %s", tokenString)
 
 	err := Service.InvalidToken(tokenString)
 	if err != nil {
