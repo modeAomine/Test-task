@@ -1,18 +1,14 @@
 package Validation
 
 import (
-	"errors"
 	"regexp"
 	"tests/DataBase"
 )
 
-func ValidateAuthUsername(username string) error {
-	usernameRegex := regexp.MustCompile(`^[a-zA-Z0-9]{3,20}$`)
-	if !usernameRegex.MatchString(username) {
-		return errors.New("Длина login'a пользователя должна составлять от 4 до 15 символов. Имя пользователя должно состоять только из английских букв и цифр!")
-	}
+type ValidationErrors map[string]string
 
-	return nil
+func (ve ValidationErrors) Error() string {
+	return "Validation errors occurred"
 }
 
 func ValidatePassword(password string) error {
@@ -21,17 +17,23 @@ func ValidatePassword(password string) error {
 	alphanumericWithSpecialRegex := regexp.MustCompile(`^[0-9a-zA-Z!*]*$`)
 	lengthRegex := regexp.MustCompile(`^.{8,}$`)
 
+	errors := ValidationErrors{}
+
 	if !uppercaseRegex.MatchString(password) {
-		return errors.New("Пароль должен содержать минимум 1 заглавную английскую букву!")
+		errors["password"] = "Пароль должен содержать минимум 1 заглавную английскую букву!"
 	}
 	if !specialCharRegex.MatchString(password) {
-		return errors.New("Пароль должен содержать минимум 1 специальный символ (!*).")
+		errors["password"] = "Пароль должен содержать минимум 1 специальный символ (!*)."
 	}
 	if !alphanumericWithSpecialRegex.MatchString(password) {
-		return errors.New("Пароль должен содержать только английские буквы, цифры и специальные символы (!*).")
+		errors["password"] = "Пароль должен содержать только английские буквы, цифры и специальные символы (!*)."
 	}
 	if !lengthRegex.MatchString(password) {
-		return errors.New("Пароль должен состоять от 8 до 15 символов!")
+		errors["password"] = "Пароль должен состоять от 8 до 15 символов!"
+	}
+
+	if len(errors) > 0 {
+		return errors
 	}
 
 	return nil
@@ -44,7 +46,7 @@ func CheckUniqueUsername(username string) error {
 		return err
 	}
 	if count > 0 {
-		return errors.New("Пользователь с таким: " + username + " login уже существует!")
+		return ValidationErrors{"username": "Пользователь с таким: " + username + " login уже существует!"}
 	}
 
 	return nil
@@ -57,7 +59,7 @@ func CheckUniqueEmail(email string) error {
 		return err
 	}
 	if count > 0 {
-		return errors.New("Пользователь с таким: " + email + " email уже существует")
+		return ValidationErrors{"email": "Пользователь с таким: " + email + " email уже существует"}
 	}
 
 	return nil
@@ -70,7 +72,7 @@ func CheckUniquePhoneNumber(phone string) error {
 		return err
 	}
 	if count > 0 {
-		return errors.New("Пользователь с таким: " + phone + " уже занят!")
+		return ValidationErrors{"phone": "Пользователь с таким: " + phone + " уже занят!"}
 	}
 
 	return nil

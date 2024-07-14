@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"tests/Model"
+	"tests/Response"
 	"tests/Service"
 	"tests/Utils"
 	"tests/Validation"
@@ -29,6 +30,10 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+type ErrorResponse struct {
+	Errors map[string]string `json:"errors"`
+}
+
 func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req RegistrationRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -37,53 +42,82 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = Validation.CheckUniqueUsername(req.Username)
-	if err != nil {
-		Service.SendError(w, "Данный login уже занят", http.StatusBadRequest)
-		return
+	errors := Validation.ValidationErrors{}
+
+	if err := Validation.CheckUniqueUsername(req.Username); err != nil {
+		if verr, ok := err.(Validation.ValidationErrors); ok {
+			for k, v := range verr {
+				errors[k] = v
+			}
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
-	err = Validation.CheckUniqueEmail(req.Email)
-	if err != nil {
-		Service.SendError(w, "Данный email уже занят", http.StatusBadRequest)
-		return
+	if err := Validation.CheckUniqueEmail(req.Email); err != nil {
+		if verr, ok := err.(Validation.ValidationErrors); ok {
+			for k, v := range verr {
+				errors[k] = v
+			}
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
-	err = Validation.CheckUniquePhoneNumber(req.Phone)
-	if err != nil {
-		Service.SendError(w, "Данный номер телефона уже занят", http.StatusBadRequest)
-		return
+	if err := Validation.CheckUniquePhoneNumber(req.Phone); err != nil {
+		if verr, ok := err.(Validation.ValidationErrors); ok {
+			for k, v := range verr {
+				errors[k] = v
+			}
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
-	err = Validation.ValidateAuthUsername(req.Username)
-	if err != nil {
-		Service.SendError(w, "Не верный login", http.StatusBadRequest)
-		return
+	if err := Validation.CheckUniqueUsername(req.Username); err != nil {
+		if verr, ok := err.(Validation.ValidationErrors); ok {
+			for k, v := range verr {
+				errors[k] = v
+			}
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
-	err = Validation.ValidatePassword(req.Password)
-	if err != nil {
-		Service.SendError(w, "Не верный пароль", http.StatusBadRequest)
-		return
+	if err := Validation.ValidatePassword(req.Password); err != nil {
+		if verr, ok := err.(Validation.ValidationErrors); ok {
+			for k, v := range verr {
+				errors[k] = v
+			}
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	if req.Password != req.HashedPassword {
-		Service.SendError(w, "Пароль и подтверждение пароля не совпадают!", http.StatusBadRequest)
-		return
+		errors["confirmPassword"] = "Пароль и подтверждение пароля не совпадают!"
 	}
 
 	if req.FullName == "" {
-		Service.SendError(w, "Имя пользователя не может быть пустым!", http.StatusBadRequest)
-		return
+		errors["fullName"] = "Имя пользователя не может быть пустым!"
 	}
 
 	if req.Email == "" {
-		Service.SendError(w, "Почта пользователя не может быть пустой!", http.StatusBadRequest)
-		return
+		errors["email"] = "Почта пользователя не может быть пустой!"
 	}
 
 	if req.Phone == "" {
-		Service.SendError(w, "Номер телефона не может быть пустым!", http.StatusBadRequest)
+		errors["phone"] = "Номер телефона не может быть пустым!"
+	}
+
+	if len(errors) > 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Errors: errors})
 		return
 	}
 
@@ -115,25 +149,25 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		Service.SendError(w, "Неверный запрос", http.StatusBadRequest)
+		Response.SendError(w, "Неверный запрос", http.StatusBadRequest)
 		return
 	}
 
 	storedUser, err := Service.GetUserByUsername(req.Username)
 	if err != nil {
-		Service.SendError(w, "Пользователь не найден", http.StatusUnauthorized)
+		Response.SendError(w, "Пользователь не найден", http.StatusUnauthorized)
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(storedUser.Password), []byte(req.Password))
 	if err != nil {
-		Service.SendError(w, "Неверные учетные данные", http.StatusUnauthorized)
+		Response.SendError(w, "Неверные учетные данные", http.StatusUnauthorized)
 		return
 	}
 
 	activeToken, err := Service.GetActiveTokenByUserID(storedUser.ID)
 	if err != nil {
-		Service.SendError(w, "Ошибка при проверке токена", http.StatusInternalServerError)
+		Response.SendError(w, "Ошибка при проверке токена", http.StatusInternalServerError)
 		return
 	}
 
@@ -171,7 +205,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 func Logout(w http.ResponseWriter, r *http.Request) {
 	tokenString := r.Header.Get("Authorization")
 	if tokenString == "" {
-		Service.SendError(w, "Требуется заголовок авторизации", http.StatusUnauthorized)
+		Response.SendError(w, "Требуется заголовок авторизации", http.StatusUnauthorized)
 		return
 	}
 

@@ -1,4 +1,4 @@
-package Service
+package Response
 
 import "net/http"
 
