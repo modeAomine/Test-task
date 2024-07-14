@@ -86,9 +86,11 @@ func UpdateWardrobe(w *Model.Wardrobe, file []byte) error {
 	storedWardrobe.Filename = w.Filename
 	storedWardrobe.Link = w.Link
 
-	err = saveFileToUploads(file, storedWardrobe.Filename)
-	if err != nil {
-		return err
+	if file != nil {
+		err = saveFileToUploads(file, storedWardrobe.Filename)
+		if err != nil {
+			return err
+		}
 	}
 
 	_, err = DataBase.DB.Exec(`

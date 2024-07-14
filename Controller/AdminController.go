@@ -10,6 +10,9 @@ import (
 )
 
 func UpdateUserByAdmin(w http.ResponseWriter, r *http.Request) {
+	if !Service.CheckTokenExpiration(w, r) {
+		return
+	}
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
@@ -50,6 +53,9 @@ func UpdateUserByAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
+	if !Service.CheckTokenExpiration(w, r) {
+		return
+	}
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
@@ -98,6 +104,9 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	if !Service.CheckTokenExpiration(w, r) {
+		return
+	}
 	users, err := Service.GetAllUsers()
 	if err != nil {
 		http.Error(w, "Не удалось получить пользователей", http.StatusInternalServerError)
@@ -113,9 +122,6 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAllWardrobe(w http.ResponseWriter, r *http.Request) {
-	/*	if !Service.CheckTokenExpiration(w, r) {
-		return
-	}*/
 	wardrobe, err := Service.GetAllWardrobe()
 	if err != nil {
 		http.Error(w, "Не удалось получить шкафы", http.StatusInternalServerError)

@@ -2,7 +2,12 @@ package Service
 
 import (
 	"errors"
+	"github.com/golang-jwt/jwt/v4"
+	"net/http"
+	"os"
+	"strings"
 	"tests/DataBase"
+	"time"
 )
 
 func InvalidToken(token string) error {
@@ -20,7 +25,7 @@ func InvalidToken(token string) error {
 	return err
 }
 
-/*func CheckTokenExpiration(w http.ResponseWriter, r *http.Request) bool {
+func CheckTokenExpiration(w http.ResponseWriter, r *http.Request) bool {
 	tokenString := r.Header.Get("Authorization")
 	if tokenString == "" {
 		http.Error(w, "Требуется заголовок авторизации", http.StatusUnauthorized)
@@ -47,7 +52,7 @@ func InvalidToken(token string) error {
 		if exp, ok := claims["exp"].(float64); ok {
 			expirationTime := time.Unix(int64(exp), 0)
 			if time.Now().After(expirationTime) {
-				Controller.Logout(w, r)
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return false
 			}
 		}
@@ -57,4 +62,4 @@ func InvalidToken(token string) error {
 	}
 
 	return true
-}*/
+}

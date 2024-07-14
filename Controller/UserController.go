@@ -13,6 +13,9 @@ import (
 )
 
 func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
+	if !Service.CheckTokenExpiration(w, r) {
+		return
+	}
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {

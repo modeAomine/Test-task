@@ -24,6 +24,9 @@ type WardrobeRequest struct {
 }
 
 func AddWardrobeHandler(w http.ResponseWriter, r *http.Request) {
+	if !Service.CheckTokenExpiration(w, r) {
+		return
+	}
 	err := r.ParseMultipartForm(25 << 20)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -83,6 +86,9 @@ func AddWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateWardrobeHandler(w http.ResponseWriter, r *http.Request) {
+	if !Service.CheckTokenExpiration(w, r) {
+		return
+	}
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
@@ -106,18 +112,27 @@ func UpdateWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 	depth := r.FormValue("depth")
 	link := r.FormValue("link")
 
+	var fileBytes []byte
+	var filename string
+
 	file, handler, err := r.FormFile("filename")
-	if err != nil {
+	if err == nil {
+		defer file.Close()
+		filename = handler.Filename
+		fileBytes, err = ioutil.ReadAll(file)
+		if err != nil {
+			http.Error(w, "Ошибка загрузки фотографии", http.StatusInternalServerError)
+			return
+		}
+	} else if err == http.ErrMissingFile {
+		existingWardrobe, err := Service.GetWardrobeById(id)
+		if err != nil {
+			http.Error(w, "Не удалось получить текущий шкаф", http.StatusInternalServerError)
+			return
+		}
+		filename = existingWardrobe.Filename
+	} else {
 		http.Error(w, "Не удалось получить файл", http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
-
-	filename := handler.Filename
-
-	fileBytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		http.Error(w, "Ошибка загрузки фотографии", http.StatusInternalServerError)
 		return
 	}
 
@@ -158,6 +173,9 @@ func UpdateWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteWardrobeHandler(w http.ResponseWriter, r *http.Request) {
+	if !Service.CheckTokenExpiration(w, r) {
+		return
+	}
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
