@@ -13,7 +13,7 @@ func UpdateUserByAdmin(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Неверный ID", http.StatusBadRequest)
 		return
 	}
 
@@ -23,7 +23,7 @@ func UpdateUserByAdmin(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(r.Body).Decode(&updateRequest)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Неверный JSON", http.StatusBadRequest)
 		return
 	}
 
@@ -32,12 +32,19 @@ func UpdateUserByAdmin(w http.ResponseWriter, r *http.Request) {
 
 	err = Service.UpdateUserByAdmin(&user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		switch err {
+		case Model.ErrUserNotFound:
+			http.Error(w, "Пользователь не найден", http.StatusNotFound)
+		case Model.ErrInvalidUserData:
+			http.Error(w, "Неверные данные пользователя", http.StatusBadRequest)
+		default:
+			http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		}
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	response := map[string]interface{}{"message": "User updated successfully", "user": user}
+	response := map[string]interface{}{"message": "Пользователь успешно обновлен", "user": user}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
@@ -46,18 +53,23 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Неверный ID", http.StatusBadRequest)
 		return
 	}
 
 	err = Service.DeleteUser(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		switch err {
+		case Model.ErrUserNotFound:
+			http.Error(w, "Пользователь не найден", http.StatusNotFound)
+		default:
+			http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		}
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	response := map[string]interface{}{"message": "User deleted successfully"}
+	response := map[string]interface{}{"message": "Пользователь успешно удален"}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
@@ -66,13 +78,18 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	var user Model.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Неверный JSON", http.StatusBadRequest)
 		return
 	}
 
 	err = Service.CreateUser(&user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		switch err {
+		case Model.ErrInvalidUserData:
+			http.Error(w, "Неверные данные пользователя", http.StatusBadRequest)
+		default:
+			http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -83,7 +100,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := Service.GetAllUsers()
 	if err != nil {
-		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)
+		http.Error(w, "Не удалось получить пользователей", http.StatusInternalServerError)
 		return
 	}
 
@@ -91,14 +108,17 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	response := map[string]interface{}{"users": users}
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		http.Error(w, "Не удалось закодировать ответ", http.StatusInternalServerError)
 	}
 }
 
 func GetAllWardrobe(w http.ResponseWriter, r *http.Request) {
+	/*	if !Service.CheckTokenExpiration(w, r) {
+		return
+	}*/
 	wardrobe, err := Service.GetAllWardrobe()
 	if err != nil {
-		http.Error(w, "Failed to retrieve wardrobes", http.StatusInternalServerError)
+		http.Error(w, "Не удалось получить шкафы", http.StatusInternalServerError)
 		return
 	}
 
@@ -106,7 +126,7 @@ func GetAllWardrobe(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	response := map[string]interface{}{"wardrobe": wardrobe}
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		http.Error(w, "Не удалось закодировать ответ", http.StatusInternalServerError)
 		return
 	}
 }

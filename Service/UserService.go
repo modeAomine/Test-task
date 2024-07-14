@@ -156,12 +156,12 @@ func UpdateUserProfile(user *Model.User, currentPassword string) error {
 		return err
 	}
 	if storedUser == nil {
-		return errors.New("User not found")
+		return errors.New("Пользователь не найден")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(storedUser.HashedPassword), []byte(currentPassword))
 	if err != nil {
-		return errors.New("Invalid password")
+		return errors.New("Не верный пароль")
 	}
 
 	storedUser.Username = user.Username

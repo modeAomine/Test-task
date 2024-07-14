@@ -13,14 +13,14 @@ func ValidateToken(tokenString string) error {
 	err := DataBase.DB.QueryRow("SELECT expires_at FROM tokens WHERE token = $1", tokenString).Scan(&expiresAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return errors.New("token not found")
+			return errors.New("Токен не найден")
 		}
 		return err
 	}
 
 	location, err := time.LoadLocation("Europe/Moscow")
 	if err != nil {
-		log.Printf("Failed to load location: %v", err)
+		log.Printf("Ошибка загрузки локации: %v", err)
 		return err
 	}
 

@@ -42,7 +42,7 @@ func AddWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 
 	file, handler, err := r.FormFile("filename")
 	if err != nil {
-		http.Error(w, "Failed to get filename", http.StatusBadRequest)
+		http.Error(w, "Не удалось получить файл", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
@@ -51,7 +51,7 @@ func AddWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 
 	fileBytes, err := ioutil.ReadAll(file)
 	if err != nil {
-		http.Error(w, "Failed to read image", http.StatusInternalServerError)
+		http.Error(w, "Ошибка загрузки фотографии", http.StatusInternalServerError)
 		return
 	}
 
@@ -108,7 +108,7 @@ func UpdateWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 
 	file, handler, err := r.FormFile("filename")
 	if err != nil {
-		http.Error(w, "Failed to get filename", http.StatusBadRequest)
+		http.Error(w, "Не удалось получить файл", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
@@ -117,7 +117,7 @@ func UpdateWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 
 	fileBytes, err := ioutil.ReadAll(file)
 	if err != nil {
-		http.Error(w, "Failed to read image", http.StatusInternalServerError)
+		http.Error(w, "Ошибка загрузки фотографии", http.StatusInternalServerError)
 		return
 	}
 
@@ -161,21 +161,26 @@ func DeleteWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Неверный ID шкафа", http.StatusBadRequest)
 		return
 	}
 
 	err = Service.DeleteWardrobe(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		switch err {
+		case Model.ErrWardrobeNotFound:
+			http.Error(w, "Шкаф не найден", http.StatusNotFound)
+		default:
+			http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		}
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]interface{}{
-		"message": "Wardrobe deleted successfully!",
+		"message": "Шкаф успешно удален!",
 	}
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -183,20 +188,22 @@ func GetWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Неверный ID шкафа", http.StatusBadRequest)
 		return
 	}
 
-	wadrobe, err := Service.GetWardrobeById(id)
+	wardrobe, err := Service.GetWardrobeById(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		switch err {
+		case Model.ErrWardrobeNotFound:
+			http.Error(w, "Шкаф не найден", http.StatusNotFound)
+		default:
+			http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		}
 		return
 	}
-	if wadrobe == nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(wadrobe)
+	json.NewEncoder(w).Encode(wardrobe)
 }

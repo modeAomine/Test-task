@@ -159,7 +159,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 func Logout(w http.ResponseWriter, r *http.Request) {
 	tokenString := r.Header.Get("Authorization")
 	if tokenString == "" {
-		http.Error(w, "Authorization header is required", http.StatusUnauthorized)
+		http.Error(w, "Требуется заголовок авторизации", http.StatusUnauthorized)
 		return
 	}
 

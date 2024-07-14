@@ -16,13 +16,13 @@ func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Неверный ID пользователя", http.StatusBadRequest)
 		return
 	}
 
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
-		http.Error(w, "Authorization header is required", http.StatusUnauthorized)
+		http.Error(w, "Требуется заголовок авторизации", http.StatusUnauthorized)
 		return
 	}
 
@@ -30,7 +30,7 @@ func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		http.Error(w, "JWT_SECRET is not set", http.StatusInternalServerError)
+		http.Error(w, "JWT_SECRET не установлен", http.StatusInternalServerError)
 		return
 	}
 
@@ -38,7 +38,7 @@ func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 		return []byte(jwtSecret), nil
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		http.Error(w, "Неверный токен", http.StatusUnauthorized)
 		return
 	}
 
@@ -46,11 +46,11 @@ func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 		userIDFromToken := int(claims["user_id"].(float64))
 
 		if userIDFromToken != id {
-			http.Error(w, "You can only update your own profile", http.StatusForbidden)
+			http.Error(w, "Вы можете обновить только свой профиль", http.StatusForbidden)
 			return
 		}
 	} else {
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		http.Error(w, "Неверный токен", http.StatusUnauthorized)
 		return
 	}
 
@@ -61,7 +61,7 @@ func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(r.Body).Decode(&updateRequest)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Неверный JSON", http.StatusBadRequest)
 		return
 	}
 
@@ -70,12 +70,21 @@ func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	err = Service.UpdateUserProfile(&user, updateRequest.CurrentPassword)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		switch err {
+		case Model.ErrUserNotFound:
+			http.Error(w, "Пользователь не найден", http.StatusNotFound)
+		case Model.ErrInvalidPassword:
+			http.Error(w, "Неверный текущий пароль", http.StatusBadRequest)
+		case Model.ErrInvalidUserData:
+			http.Error(w, "Неверные данные пользователя", http.StatusBadRequest)
+		default:
+			http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		}
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	response := map[string]interface{}{"message": "User profile updated successfully", "user": user}
+	response := map[string]interface{}{"message": "Профиль пользователя успешно изменен", "user": user}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }

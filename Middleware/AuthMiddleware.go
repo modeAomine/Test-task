@@ -50,8 +50,6 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		log.Printf("Token is valid, validating and extending if necessary")
-
 		err = Utils.ValidateToken(tokenString)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -59,7 +57,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		if strings.HasPrefix(r.URL.Path, "/admin") && claims.Role != "admin" {
-			http.Error(w, "Access denied", http.StatusForbidden)
+			http.Error(w, "Доступ запрещен", http.StatusForbidden)
 			return
 		}
 
