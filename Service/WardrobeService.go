@@ -65,7 +65,7 @@ func CreateWardrobe(w *Model.Wardrobe, file []byte) error {
 	return nil
 }
 
-func UpdateWardrobe(w *Model.Wardrobe) error {
+func UpdateWardrobe(w *Model.Wardrobe, file []byte) error {
 	storedWardrobe, err := GetWardrobeById(w.ID)
 	if err != nil {
 		return err
@@ -86,10 +86,15 @@ func UpdateWardrobe(w *Model.Wardrobe) error {
 	storedWardrobe.Filename = w.Filename
 	storedWardrobe.Link = w.Link
 
+	err = saveFileToUploads(file, storedWardrobe.Filename)
+	if err != nil {
+		return err
+	}
+
 	_, err = DataBase.DB.Exec(`
 		UPDATE Wardrobe 
 		SET title = $1, quantity = $2, price = $3, old_price = $4, description = $5, height = $6, width = $7, depth = $8, filename = $9, link = $10
-		WHERE id = $10`,
+		WHERE id = $11`,
 		storedWardrobe.Title,
 		storedWardrobe.Quantity,
 		storedWardrobe.Price,
@@ -102,6 +107,7 @@ func UpdateWardrobe(w *Model.Wardrobe) error {
 		storedWardrobe.Link,
 		storedWardrobe.ID,
 	)
+
 	if err != nil {
 		return err
 	}

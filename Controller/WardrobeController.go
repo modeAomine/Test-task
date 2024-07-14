@@ -86,22 +86,66 @@ func UpdateWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
+		http.Error(w, "Неверный ID", http.StatusBadRequest)
+		return
+	}
+
+	err = r.ParseMultipartForm(25 << 20)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	var wardrobe Model.Wardrobe
-	err = json.NewDecoder(r.Body).Decode(&wardrobe)
+	title := r.FormValue("title")
+	quantity := r.FormValue("quantity")
+	price := r.FormValue("price")
+	oldPrice := r.FormValue("old_price")
+	description := r.FormValue("description")
+	height := r.FormValue("height")
+	width := r.FormValue("width")
+	depth := r.FormValue("depth")
+	link := r.FormValue("link")
+
+	file, handler, err := r.FormFile("filename")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Failed to get filename", http.StatusBadRequest)
 		return
+	}
+	defer file.Close()
+
+	filename := handler.Filename
+
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		http.Error(w, "Failed to read image", http.StatusInternalServerError)
+		return
+	}
+
+	wardrobe := Model.Wardrobe{
+		Title:       title,
+		Quantity:    quantity,
+		Price:       price,
+		OldPrice:    oldPrice,
+		Description: description,
+		Height:      height,
+		Width:       width,
+		Depth:       depth,
+		Filename:    filename,
+		Link:        link,
 	}
 
 	wardrobe.ID = id
 
-	err = Service.UpdateWardrobe(&wardrobe)
+	err = Service.UpdateWardrobe(&wardrobe, fileBytes)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		switch err {
+		case Model.ErrWardrobeNotFound:
+			http.Error(w, "Шкаф не найден", http.StatusNotFound)
+		case Model.ErrInvalidWardrobeData:
+			http.Error(w, "Неверные данные шкафа", http.StatusBadRequest)
+		default:
+			http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -109,7 +153,7 @@ func UpdateWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{
 		"message": wardrobe.Title + " успешно отредактирован!",
 	}
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
 

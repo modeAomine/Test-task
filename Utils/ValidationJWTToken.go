@@ -26,10 +26,6 @@ func ValidateToken(tokenString string) error {
 
 	expiresAt = expiresAt.In(location)
 
-	log.Printf("Current time: %v", time.Now().In(location))
-	log.Printf("Token expires at: %v", expiresAt)
-	log.Printf("Time difference: %v", expiresAt.Sub(time.Now().In(location)))
-
 	if expiresAt.Sub(time.Now().In(location)) < 3*time.Hour+30*time.Minute {
 		newExpiresAt := time.Now().Add(time.Hour * 12)
 		log.Printf("Extending token lifetime to: %v", newExpiresAt)

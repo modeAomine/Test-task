@@ -13,7 +13,7 @@ func InvalidToken(token string) error {
 	}
 
 	if count == 0 {
-		return errors.New("token not found")
+		return errors.New("Токен не найден")
 	}
 
 	_, err = DataBase.DB.Exec("DELETE FROM tokens WHERE token = $1", token)
