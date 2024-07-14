@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"strconv"
 	"tests/Model"
+	"tests/Response"
 	"tests/Service"
+	"tests/Validation"
 )
 
 func UpdateUserByAdmin(w http.ResponseWriter, r *http.Request) {
@@ -33,11 +35,13 @@ func UpdateUserByAdmin(w http.ResponseWriter, r *http.Request) {
 	user := updateRequest.User
 	user.ID = id
 
+	errors := make(map[string]string)
+
 	err = Service.UpdateUserByAdmin(&user)
 	if err != nil {
 		switch err {
 		case Model.ErrUserNotFound:
-			http.Error(w, "Пользователь не найден", http.StatusNotFound)
+			errors["id"] = "Пользователь не найден"
 		case Model.ErrInvalidUserData:
 			http.Error(w, "Неверные данные пользователя", http.StatusBadRequest)
 		default:
@@ -63,11 +67,13 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	errors := make(map[string]string)
+
 	err = Service.DeleteUser(id)
 	if err != nil {
 		switch err {
 		case Model.ErrUserNotFound:
-			http.Error(w, "Пользователь не найден", http.StatusNotFound)
+			errors["id"] = "Пользователь не найден"
 		default:
 			http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		}
@@ -85,6 +91,78 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, "Неверный JSON", http.StatusBadRequest)
+		return
+	}
+
+	errors := Validation.ValidationErrors{}
+
+	if err := Validation.CheckUniqueEmail(user.Email.String); err != nil {
+		if verr, ok := err.(Validation.ValidationErrors); ok {
+			for k, v := range verr {
+				errors[k] = v
+			}
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if err := Validation.CheckUniquePhoneNumber(user.Phone.String); err != nil {
+		if verr, ok := err.(Validation.ValidationErrors); ok {
+			for k, v := range verr {
+				errors[k] = v
+			}
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if err := Validation.CheckUniqueUsername(user.Username); err != nil {
+		if verr, ok := err.(Validation.ValidationErrors); ok {
+			for k, v := range verr {
+				errors[k] = v
+			}
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if err := Validation.ValidatePassword(user.Password); err != nil {
+		if verr, ok := err.(Validation.ValidationErrors); ok {
+			for k, v := range verr {
+				errors[k] = v
+			}
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if user.Username == "" {
+		errors["username"] = "Login пользователя не может быть пустым"
+	}
+
+	if user.Password != user.HashedPassword {
+		errors["confirmPassword"] = "Пароль и подтверждение пароля не совпадают!"
+	}
+
+	if user.FullName.String == "" {
+		errors["fullName"] = "Имя пользователя не может быть пустым!"
+	}
+
+	if user.Email.String == "" {
+		errors["email"] = "Почта пользователя не может быть пустой!"
+	}
+
+	if user.Phone.String == "" {
+		errors["phone"] = "Номер телефона не может быть пустым!"
+	}
+
+	if len(errors) > 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(Response.ErrorResponse{Errors: errors})
 		return
 	}
 

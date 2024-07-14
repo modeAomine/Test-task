@@ -30,10 +30,6 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-type ErrorResponse struct {
-	Errors map[string]string `json:"errors"`
-}
-
 func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req RegistrationRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -99,6 +95,10 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if req.Username == "" {
+		errors["username"] = "Login пользователя не может быть пустым"
+	}
+
 	if req.Password != req.HashedPassword {
 		errors["confirmPassword"] = "Пароль и подтверждение пароля не совпадают!"
 	}
@@ -117,7 +117,7 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	if len(errors) > 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Errors: errors})
+		json.NewEncoder(w).Encode(Response.ErrorResponse{Errors: errors})
 		return
 	}
 
@@ -153,15 +153,22 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	errors := make(map[string]string)
+
 	storedUser, err := Service.GetUserByUsername(req.Username)
 	if err != nil {
-		Response.SendError(w, "Пользователь не найден", http.StatusUnauthorized)
+		errors["username"] = "Пользователь не найден"
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(storedUser.Password), []byte(req.Password))
 	if err != nil {
-		Response.SendError(w, "Неверные учетные данные", http.StatusUnauthorized)
+		errors["password"] = "Неверные учетные данные"
+	}
+
+	if len(errors) > 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(Response.ErrorResponse{Errors: errors})
 		return
 	}
 

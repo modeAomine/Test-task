@@ -27,11 +27,14 @@ func AddWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 	if !Service.CheckTokenExpiration(w, r) {
 		return
 	}
+
 	err := r.ParseMultipartForm(25 << 20)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	errors := make(map[string]string)
 
 	title := r.FormValue("title")
 	quantity := r.FormValue("quantity")
@@ -43,46 +46,92 @@ func AddWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 	depth := r.FormValue("depth")
 	link := r.FormValue("link")
 
+	if title == "" {
+		errors["title"] = "Название не может быть пустым"
+	}
+	if quantity == "" {
+		errors["quantity"] = "Количество не может быть пустым"
+	}
+	if price == "" {
+		errors["price"] = "Цена не может быть пустой"
+	}
+
+	if oldPrice == "" {
+		errors["old_price"] = "Старая цена не может быть пустой"
+	}
+
+	if oldPrice > price {
+		errors["old_price"] = "Старая цена не может быть больше текущей"
+	}
+
+	if oldPrice == "" {
+		errors["old_price"] = "Старая цена не может быть пустой"
+	}
+
+	if description == "" {
+		errors["description"] = "Описание не может быть пустым"
+	}
+
+	if height == "" || width == "" || depth == "" {
+		errors["sizes"] = "Высота, ширина и грубина не можгут быть пустыми"
+	}
+
+	if link == "" {
+		errors["link"] = "Ссылка не может быть пустой"
+	}
+
 	file, handler, err := r.FormFile("filename")
 	if err != nil {
-		http.Error(w, "Не удалось получить файл", http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
+		errors["filename"] = "Не удалось получить файл"
+	} else {
+		defer file.Close()
 
-	filename := handler.Filename
+		filename := handler.Filename
 
-	fileBytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		http.Error(w, "Ошибка загрузки фотографии", http.StatusInternalServerError)
-		return
+		fileBytes, err := ioutil.ReadAll(file)
+		if err != nil {
+			errors["filename"] = "Не получилось загрузить фотографию"
+		}
+
+		if len(errors) > 0 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{"errors": errors})
+			return
+		}
+
+		wardrobe := Model.Wardrobe{
+			Title:       title,
+			Quantity:    quantity,
+			Price:       price,
+			OldPrice:    oldPrice,
+			Description: description,
+			Height:      height,
+			Width:       width,
+			Depth:       depth,
+			Filename:    filename,
+			Link:        link,
+		}
+
+		err = Service.CreateWardrobe(&wardrobe, fileBytes)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"message": wardrobe.Title + " успешно добавлен!",
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(response)
 	}
 
-	wardrobe := Model.Wardrobe{
-		Title:       title,
-		Quantity:    quantity,
-		Price:       price,
-		OldPrice:    oldPrice,
-		Description: description,
-		Height:      height,
-		Width:       width,
-		Depth:       depth,
-		Filename:    filename,
-		Link:        link,
+	if len(errors) > 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{"errors": errors})
 	}
-
-	err = Service.CreateWardrobe(&wardrobe, fileBytes)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	response := map[string]interface{}{
-		"message": wardrobe.Title + " успешно добавлен!",
-	}
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
 }
 
 func UpdateWardrobeHandler(w http.ResponseWriter, r *http.Request) {
