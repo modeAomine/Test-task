@@ -24,7 +24,7 @@ type WardrobeRequest struct {
 }
 
 func AddWardrobeHandler(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(25 << 20) // 25 MB
+	err := r.ParseMultipartForm(25 << 20)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -40,9 +40,9 @@ func AddWardrobeHandler(w http.ResponseWriter, r *http.Request) {
 	depth := r.FormValue("depth")
 	link := r.FormValue("link")
 
-	file, handler, err := r.FormFile("image")
+	file, handler, err := r.FormFile("filename")
 	if err != nil {
-		http.Error(w, "Failed to get image", http.StatusBadRequest)
+		http.Error(w, "Failed to get filename", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()

@@ -2,17 +2,14 @@ package Utils
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/golang-jwt/jwt/v4"
+	"log"
 	"tests/Config"
 	"tests/DataBase"
 	"time"
 )
 
 func GenerateJWT(userID int, username string, role string, email sql.NullString, phone sql.NullString) (string, error) {
-	fmt.Printf("Email: %+v\n", email)
-	fmt.Printf("Phone: %+v\n", phone)
-
 	claims := jwt.MapClaims{
 		"user_id":  userID,
 		"username": username,
@@ -29,27 +26,36 @@ func GenerateJWT(userID int, username string, role string, email sql.NullString,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(Config.AppConfig.JWTSecret))
-}
-
-func SaveTokenToDB(userID int, tokenString string, expiresAt time.Time) error {
-	_, err := DataBase.DB.Exec("INSERT INTO tokens (user_id, token, expires_at) VALUES ($1, $2, $3)", userID, tokenString, expiresAt)
-	return err
-}
-
-func DecodeJWT(tokenString string) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return []byte(Config.AppConfig.JWTSecret), nil
-	})
+	jwtToken, err := token.SignedString([]byte(Config.AppConfig.JWTSecret))
 	if err != nil {
-		fmt.Println("Error parsing token:", err)
-		return
+		return "", err
 	}
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		fmt.Println("User ID:", claims["user_id"])
-		fmt.Println("Role:", claims["role"])
-	} else {
-		fmt.Println("Invalid token")
+	return jwtToken, nil
+}
+
+func SaveTokensToDB(userID int, jwtToken string, expiresAt time.Time) error {
+	location, err := time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		return err
 	}
+
+	expiresAt = expiresAt.In(location)
+
+	_, err = DataBase.DB.Exec("INSERT INTO tokens (user_id, token, expires_at) VALUES ($1, $2, $3)", userID, jwtToken, expiresAt)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExtendTokenLifetime(token string, newExpiresAt time.Time) error {
+	log.Printf("Extending token lifetime for token: %s to: %v", token, newExpiresAt)
+	_, err := DataBase.DB.Exec("UPDATE tokens SET expires_at = $1 WHERE token = $2", newExpiresAt, token)
+	if err != nil {
+		log.Printf("Failed to extend token lifetime: %v", err)
+		return err
+	}
+	log.Printf("Token lifetime successfully extended")
+	return nil
 }

@@ -3,8 +3,10 @@ package Middleware
 import (
 	"context"
 	"github.com/golang-jwt/jwt/v4"
+	"log"
 	"net/http"
 	"strings"
+	"tests/Utils"
 )
 
 var JwtKey = []byte("93821fsajkKFDS92")
@@ -19,6 +21,8 @@ type Claims struct {
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("AuthMiddleware called for request: %s %s", r.Method, r.URL.Path)
+
 		tokenString := r.Header.Get("Authorization")
 		if tokenString == "" {
 			http.Error(w, "Authorization header is required", http.StatusUnauthorized)
@@ -43,6 +47,19 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		if !token.Valid {
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		log.Printf("Token is valid, validating and extending if necessary")
+
+		err = Utils.ValidateToken(tokenString)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		if strings.HasPrefix(r.URL.Path, "/admin") && claims.Role != "admin" {
+			http.Error(w, "Access denied", http.StatusForbidden)
 			return
 		}
 

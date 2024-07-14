@@ -3,7 +3,7 @@ CREATE TABLE Wardrobe (
                           Title VARCHAR(255) NOT NULL,
                           Quantity INT NOT NULL,
                           Price VARCHAR(255) NOT NULL,
-                          Old_price VARCHAR(225) NOT NULL,
+                          Old_price VARCHAR(255) NOT NULL,
                           Description TEXT,
                           Height VARCHAR(255),
                           Width VARCHAR(255),

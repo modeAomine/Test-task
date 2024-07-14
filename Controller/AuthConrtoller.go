@@ -3,13 +3,11 @@ package Controller
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"strings"
-	"tests/DataBase"
 	"tests/Model"
 	"tests/Service"
 	"tests/Utils"
@@ -39,7 +37,19 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = checkUniqueEmailAndPhone(req.Email, req.Phone)
+	err = Validation.CheckUniqueUsername(req.Username)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = Validation.CheckUniqueEmailAndPhone(req.Email, req.Phone)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = Validation.ValidateAuthUser(req.Username, req.Password)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -50,9 +60,18 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = Validation.ValidateAuthUser(req.Username, req.Password)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if req.FullName == "" {
+		http.Error(w, "Имя пользователя не может быть пустым!", http.StatusBadRequest)
+		return
+	}
+
+	if req.Email == "" {
+		http.Error(w, "Почта пользователя не может быть пустой!", http.StatusBadRequest)
+		return
+	}
+
+	if req.Phone == "" {
+		http.Error(w, "Номер телефона не может быть пустым!", http.StatusBadRequest)
 		return
 	}
 
@@ -124,7 +143,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Generated Token: %s\n", token)
 
 	expiresAt := time.Now().Add(time.Hour * 12)
-	err = Utils.SaveTokenToDB(storedUser.ID, token, expiresAt)
+	err = Utils.SaveTokensToDB(storedUser.ID, token, expiresAt)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -160,25 +179,4 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
-}
-
-func checkUniqueEmailAndPhone(email string, phone string) error {
-	var count int
-	err := DataBase.DB.QueryRow("SELECT COUNT(*) FROM users WHERE email = $1", email).Scan(&count)
-	if err != nil {
-		return err
-	}
-	if count > 0 {
-		return errors.New("Пользователь с таким: " + email + " email уже существует")
-	}
-
-	err = DataBase.DB.QueryRow("SELECT COUNT(*) FROM users WHERE phone = $1", phone).Scan(&count)
-	if err != nil {
-		return err
-	}
-
-	if count > 0 {
-		return errors.New("Пользователь с таким: " + phone + " номером уже существует!")
-	}
-	return nil
 }
