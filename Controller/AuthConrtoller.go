@@ -39,39 +39,51 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	err = Validation.CheckUniqueUsername(req.Username)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		Service.SendError(w, "Данный login уже занят", http.StatusBadRequest)
 		return
 	}
 
-	err = Validation.CheckUniqueEmailAndPhone(req.Email, req.Phone)
+	err = Validation.CheckUniqueEmail(req.Email)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		Service.SendError(w, "Данный email уже занят", http.StatusBadRequest)
 		return
 	}
 
-	err = Validation.ValidateAuthUser(req.Username, req.Password)
+	err = Validation.CheckUniquePhoneNumber(req.Phone)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		Service.SendError(w, "Данный номер телефона уже занят", http.StatusBadRequest)
+		return
+	}
+
+	err = Validation.ValidateAuthUsername(req.Username)
+	if err != nil {
+		Service.SendError(w, "Не верный login", http.StatusBadRequest)
+		return
+	}
+
+	err = Validation.ValidatePassword(req.Password)
+	if err != nil {
+		Service.SendError(w, "Не верный пароль", http.StatusBadRequest)
 		return
 	}
 
 	if req.Password != req.HashedPassword {
-		http.Error(w, "Пароль и подтверждение пароля не совпадают!", http.StatusBadRequest)
+		Service.SendError(w, "Пароль и подтверждение пароля не совпадают!", http.StatusBadRequest)
 		return
 	}
 
 	if req.FullName == "" {
-		http.Error(w, "Имя пользователя не может быть пустым!", http.StatusBadRequest)
+		Service.SendError(w, "Имя пользователя не может быть пустым!", http.StatusBadRequest)
 		return
 	}
 
 	if req.Email == "" {
-		http.Error(w, "Почта пользователя не может быть пустой!", http.StatusBadRequest)
+		Service.SendError(w, "Почта пользователя не может быть пустой!", http.StatusBadRequest)
 		return
 	}
 
 	if req.Phone == "" {
-		http.Error(w, "Номер телефона не может быть пустым!", http.StatusBadRequest)
+		Service.SendError(w, "Номер телефона не может быть пустым!", http.StatusBadRequest)
 		return
 	}
 
@@ -103,25 +115,25 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		Service.SendError(w, "Неверный запрос", http.StatusBadRequest)
 		return
 	}
 
 	storedUser, err := Service.GetUserByUsername(req.Username)
 	if err != nil {
-		http.Error(w, "Пользователь не найден", http.StatusUnauthorized)
+		Service.SendError(w, "Пользователь не найден", http.StatusUnauthorized)
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(storedUser.Password), []byte(req.Password))
 	if err != nil {
-		http.Error(w, "Неверные учетные данные", http.StatusUnauthorized)
+		Service.SendError(w, "Неверные учетные данные", http.StatusUnauthorized)
 		return
 	}
 
 	activeToken, err := Service.GetActiveTokenByUserID(storedUser.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		Service.SendError(w, "Ошибка при проверке токена", http.StatusInternalServerError)
 		return
 	}
 
@@ -159,7 +171,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 func Logout(w http.ResponseWriter, r *http.Request) {
 	tokenString := r.Header.Get("Authorization")
 	if tokenString == "" {
-		http.Error(w, "Требуется заголовок авторизации", http.StatusUnauthorized)
+		Service.SendError(w, "Требуется заголовок авторизации", http.StatusUnauthorized)
 		return
 	}
 
