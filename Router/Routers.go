@@ -32,6 +32,8 @@ func UserRouter() *mux.Router {
 func ProfileRouter() *mux.Router {
 	r := mux.NewRouter()
 
+	r.Handle("/profile", Middleware.AuthMiddleware(http.HandlerFunc(Controller.GetUserProfileHandler))).Methods("GET")
+
 	return r
 }
 
@@ -77,6 +79,7 @@ func MixRouter() *mux.Router {
 	r.PathPrefix("/logout").Handler(LogoutRouter())
 	r.PathPrefix("/all").Handler(AllRouter())
 	r.PathPrefix("/wardrobe").Handler(WardrobeRouter())
+	r.PathPrefix("/profile").Handler(ProfileRouter())
 
 	r.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 

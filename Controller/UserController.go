@@ -1,6 +1,7 @@
 package Controller
 
 import (
+	"database/sql"
 	"encoding/json"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
@@ -8,9 +9,43 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"tests/DataBase"
+	"tests/Middleware"
 	"tests/Model"
 	"tests/Service"
 )
+
+type UserProfile struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	FullName string `json:"full_name"`
+}
+
+func GetUserProfileHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value("claims").(*Middleware.Claims)
+	if !ok {
+		http.Error(w, "Invalid claims", http.StatusInternalServerError)
+		return
+	}
+
+	userID := claims.UserID
+
+	row := DataBase.DB.QueryRow("SELECT username, email, full_name FROM users WHERE id = $1", userID)
+
+	var userProfile UserProfile
+	err := row.Scan(&userProfile.Username, &userProfile.Email, &userProfile.FullName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "User not found", http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(userProfile)
+}
 
 func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 	if !Service.CheckTokenExpiration(w, r) {
